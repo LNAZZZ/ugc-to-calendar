@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGC Ticket → Google Agenda</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-zone:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .upload-zone.dragover {
+            background: #e8ecff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            font-size: 13px;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ticket-info {
+            display: none;
+        }
+
+        .ticket-info.active {
+            display: block;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .info-value.large {
+            font-size: 22px;
+            color: #1e3c72;
+            font-weight: 600;
+        }
+
+        .highlight-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .seat-info {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .seat-item {
+            flex: 1;
+        }
+
+        .calendar-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .calendar-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .calendar-btn:active {
+            transform: translateY(0);
+        }
+
+        .calendar-icon {
+            font-size: 24px;
+        }
+
+        .reset-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #f0f4ff;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #ddd, transparent);
+            margin: 20px 0;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #f44;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #c33;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+
+            .seat-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 UGC → Google Agenda</h1>
+            <p>Importez votre e-billet UGC</p>
+        </div>
+
+        <div class="content">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Cliquez ou glissez votre e-billet PDF</div>
+                <div class="upload-subtext">Format PDF uniquement</div>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div style="color: #667eea; font-weight: 500;">Analyse du billet en cours...</div>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="ticket-info" id="ticketInfo">
+                <div class="info-section">
+                    <div class="info-label">🎬 Film</div>
+                    <div class="info-value large" id="filmTitle"></div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="info-section">
+                    <div class="info-label">📍 Cinéma</div>
+                    <div class="info-value" id="cinema"></div>
+                    <div class="info-value" style="margin-top: 5px; font-size: 14px;" id="address"></div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-label">📅 Date</div>
+                    <div class="info-value" id="date"></div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-label">🕐 Horaire</div>
+                    <div class="info-value" id="time"></div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="seat-info">
+                        <div class="seat-item">
+                            <div class="info-label">🎬 Salle</div>
+                            <div class="info-value" id="room"></div>
+                        </div>
+                        <div class="seat-item">
+                            <div class="info-label">💺 Place</div>
+                            <div class="info-value" id="seat"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="calendar-btn" onclick="addToGoogleCalendar()">
+                    <span class="calendar-icon">📆</span>
+                    Ajouter à Google Agenda
+                </button>
+
+                <button class="reset-btn" onclick="reset()">
+                    ↻ Charger un autre billet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        let ticketData = {};
+
+        // PDF.js configuration
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const ticketInfo = document.getElementById('ticketInfo');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Upload zone interactions
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                handleFile(file);
+            } else {
+                showError('Veuillez uploader un fichier PDF valide.');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        async function handleFile(file) {
+            hideError();
+            uploadZone.style.display = 'none';
+            loading.classList.add('active');
+
+            try {
+                const text = await extractTextFromPDF(file);
+                ticketData = parseTicketData(text);
+                displayTicketInfo(ticketData);
+                loading.classList.remove('active');
+                ticketInfo.classList.add('active');
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Erreur lors de la lecture du billet. Veuillez réessayer.');
+                loading.classList.remove('active');
+                uploadZone.style.display = 'block';
+            }
+        }
+
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + ' ';
+            }
+
+            return fullText;
+        }
+
+        function parseTicketData(text) {
+            const data = {};
+            
+            console.log("Full text:", text); // Debug
+
+            // Extract film title - Multiple strategies
+            // Strategy 1: Look for word in CAPS after "Réservation" and before SALLE or UGC TOISON
+            let titleMatch = text.match(/Réservation[^A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ]+([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']+(?:\s+[A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']+)*)\s+(?:SALLE|\d{2})/);
+            
+            // Strategy 2: Look for CAPS word between reservation number and SALLE
+            if (!titleMatch) {
+                titleMatch = text.match(/\d{16}[^A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ]+([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']+(?:\s+[A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']+)*)\s+SALLE/);
+            }
+            
+            // Strategy 3: Look for CAPS word before age rating and UGC
+            if (!titleMatch) {
+                titleMatch = text.match(/\b([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{2,}(?:\s+[A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{2,})*)\s+\d{2}/);
+            }
+            
+            // Strategy 4: Simple search for common title patterns - word in CAPS not being UGC/SALLE/PLACE
+            if (!titleMatch) {
+                const allCapsWords = text.match(/\b([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{3,}(?:\s+[A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{3,})*)\b/g);
+                if (allCapsWords) {
+                    // Filter out known keywords
+                    const filtered = allCapsWords.filter(word => 
+                        !word.includes('UGC') && 
+                        !word.includes('SALLE') && 
+                        !word.includes('PLACE') && 
+                        !word.includes('AVENUE') &&
+                        !word.includes('BRUXELLES') &&
+                        !word.includes('UNLIMITED') &&
+                        !word.includes('MONTANT') &&
+                        !word.includes('TOISON') &&
+                        !word.includes('BOULEVARD') &&
+                        !word.includes('RUE') &&
+                        word.length >= 3 &&
+                        word.length <= 40
+                    );
+                    if (filtered.length > 0) {
+                        titleMatch = [null, filtered[0]];
+                    }
+                }
+            }
+            
+            data.title = titleMatch ? titleMatch[1].trim() : 'Film';
+            
+            // Clean up title - remove SALLE if it got attached
+            data.title = data.title.replace(/\s+SALLE.*$/i, '').trim();
+
+            // Extract cinema name - New approach: search for known patterns separately
+            let cinemaName = '';
+            
+            // First, check if "TOISON D'OR" or similar location names appear anywhere
+            if (text.match(/TOISON\s+D['']OR/i)) {
+                cinemaName = "TOISON D'OR";
+            } else if (text.match(/DE\s+BROUCKERE/i)) {
+                cinemaName = "DE BROUCKERE";
+            } else if (text.match(/MONTPARNASSE/i)) {
+                cinemaName = "MONTPARNASSE";
+            } else if (text.match(/DOCKS/i)) {
+                cinemaName = "DOCKS";
+            }
+            
+            // If we found a cinema name, use it
+            if (cinemaName) {
+                data.cinema = `UGC ${cinemaName}`;
+            } else {
+                // Fallback: try to extract from the pattern around AVENUE
+                const match = text.match(/([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{3,}(?:\s+[A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ']{3,})*)\s+AVENUE/);
+                if (match && !match[1].includes('UNLIMITED') && !match[1].includes('PLACE')) {
+                    // Check if this might be a street name or cinema name
+                    // Cinema names are usually 2-3 words
+                    const words = match[1].trim().split(/\s+/);
+                    if (words.length <= 3 && match[1].length < 30) {
+                        data.cinema = `UGC ${match[1].trim()}`;
+                    } else {
+                        data.cinema = 'UGC';
+                    }
+                } else {
+                    data.cinema = 'UGC';
+                }
+            }
+
+            // Extract address - complete street address with postal code and city
+            // Pattern: (AVENUE/RUE/etc) + (street name) + (number with optional ET) + (postal code) + (city)
+            let addressMatch = text.match(/(AVENUE|RUE|BOULEVARD|PLACE)\s+([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ'\s]+?)\s+(\d+(?:\s+ET\s+\d+)?)\s+(\d{4})\s+([A-ZÀÂÄÆÇÉÈÊËÏÎÔŒÙÛÜ]+)/i);
+            
+            if (addressMatch) {
+                const streetType = addressMatch[1];
+                const streetName = addressMatch[2].trim();
+                const streetNumber = addressMatch[3];
+                const postalCode = addressMatch[4];
+                const city = addressMatch[5];
+                data.address = `${streetType} ${streetName} ${streetNumber}, ${postalCode} ${city}`;
+                data.fullLocation = `${data.cinema}, ${data.address}`;
+            } else {
+                data.address = '';
+                data.fullLocation = data.cinema;
+            }
+
+            // Extract screening date and time - "07 janv. 2026 à 16:30"
+            // This is the ACTUAL screening time, not the booking time
+            const screeningMatch = text.match(/(\d{1,2})\s+(janv\.|févr\.|mars|avr\.|mai|juin|juil\.|août|sept\.|oct\.|nov\.|déc\.)\s+(\d{4})\s+à\s+(\d{1,2}):(\d{2})/i);
+            if (screeningMatch) {
+                const monthMap = {
+                    'janv.': '01', 'févr.': '02', 'mars': '03', 'avr.': '04',
+                    'mai': '05', 'juin': '06', 'juil.': '07', 'août': '08',
+                    'sept.': '09', 'oct.': '10', 'nov.': '11', 'déc.': '12'
+                };
+                const day = screeningMatch[1].padStart(2, '0');
+                const month = monthMap[screeningMatch[2].toLowerCase()] || '01';
+                const year = screeningMatch[3];
+                data.date = `${year}-${month}-${day}`;
+                data.dateFormatted = `${screeningMatch[1]} ${screeningMatch[2]} ${year}`;
+                data.startTime = `${screeningMatch[4].padStart(2, '0')}:${screeningMatch[5]}`;
+            }
+
+            // Extract end time - "(fin 18:38)"
+            const endTimeMatch = text.match(/\(fin\s+(\d{1,2}):(\d{2})\)/i);
+            if (endTimeMatch) {
+                data.endTime = `${endTimeMatch[1].padStart(2, '0')}:${endTimeMatch[2]}`;
+            }
+
+            // Extract room - "SALLE 3"
+            const roomMatch = text.match(/SALLE\s+(\d+)/i);
+            data.room = roomMatch ? `Salle ${roomMatch[1]}` : '';
+
+            // Extract seat - "1 PLACE : I9" or just "I9" near PLACE
+            const seatMatch = text.match(/(?:PLACE\s*[:\s]+|PLACE\s+:\s+)([A-Z]\d+)/i);
+            data.seat = seatMatch ? seatMatch[1] : '';
+
+            // Extract version - VFnst, VOST, VO, etc.
+            const versionMatch = text.match(/\b(VFnst|VF|VOST|VO)\b/i);
+            data.version = versionMatch ? versionMatch[1] : '';
+
+            return data;
+        }
+
+        function displayTicketInfo(data) {
+            document.getElementById('filmTitle').textContent = data.title || 'Film';
+            document.getElementById('cinema').textContent = data.cinema || 'UGC';
+            document.getElementById('address').textContent = data.address || '';
+            document.getElementById('date').textContent = data.dateFormatted || '';
+            
+            let timeText = data.startTime || '';
+            if (data.endTime) {
+                timeText += ` - ${data.endTime}`;
+            }
+            document.getElementById('time').textContent = timeText;
+            
+            document.getElementById('room').textContent = data.room || '';
+            document.getElementById('seat').textContent = data.seat || '';
+        }
+
+        function addToGoogleCalendar() {
+            const { title, cinema, address, fullLocation, date, startTime, endTime, room, seat, version } = ticketData;
+
+            // Format dates for Google Calendar (YYYYMMDDTHHmmss)
+            const startDateTime = `${date.replace(/-/g, '')}T${startTime.replace(':', '')}00`;
+            const endDateTime = endTime ? `${date.replace(/-/g, '')}T${endTime.replace(':', '')}00` : '';
+
+            // Create description
+            const description = `Film: ${title}
+Cinéma: ${cinema}
+${room ? `Salle: ${room}` : ''}
+${seat ? `Place: ${seat}` : ''}
+${version ? `Version: ${version}` : ''}
+
+${address ? `Adresse: ${address}` : ''}`;
+
+            // Build Google Calendar URL with 30 minute reminder
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: title,
+                dates: endDateTime ? `${startDateTime}/${endDateTime}` : startDateTime,
+                details: description,
+                location: fullLocation || cinema,
+                sf: true,
+                output: 'xml',
+                remind: '30' // 30 minute reminder
+            });
+
+            window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+        }
+
+        function reset() {
+            ticketInfo.classList.remove('active');
+            uploadZone.style.display = 'block';
+            fileInput.value = '';
+            ticketData = {};
+            hideError();
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
